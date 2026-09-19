@@ -1,0 +1,2402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Payment Records</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+html, body { height: 100%; }
+body { overflow: hidden; }
+.app-header-inner { max-width: none !important; }
+.app-main { max-width: none !important; height: calc(100vh - 86px); padding: 12px 16px !important; overflow: hidden; }
+.workspace { display:grid; grid-template-columns:320px minmax(0,1fr); gap:12px; height:100%; min-height:0; align-items:stretch; }
+.control-panel { min-height:0; overflow:auto; padding-right:2px; }
+.data-panel { min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+#tableWrapper { flex:1 1 auto; min-height:0; overflow:auto; border-top:1px solid #e2e8f0; }
+#dataTable { border-collapse:separate; border-spacing:0; min-width:max-content; table-layout:fixed; }
+#dataTable thead { position:sticky; top:0; z-index:20; }
+#dataTable th { position:sticky; top:0; z-index:20; background:#f8fafc; box-shadow:inset 0 -1px 0 #e2e8f0; }
+#dataTable td,#dataTable th { padding-top:.6rem !important; padding-bottom:.6rem !important; }
+
+#dataTable th, #dataTable td { position:relative; }
+#dataTable th { min-width:70px; }
+#dataTable th .header-label { white-space:normal; overflow-wrap:anywhere; line-height:1.15; }
+#dataTable td { white-space:normal !important; overflow-wrap:anywhere; word-break:break-word; vertical-align:top; }
+#dataTable .resize-handle { position:absolute; right:-3px; top:0; width:7px; height:100%; cursor:col-resize; z-index:30; }
+#dataTable .resize-handle:hover, #dataTable th.resizing .resize-handle { background:#2563eb; }
+#dataTable th.resizing { user-select:none; }
+.data-edit-btn { white-space:nowrap; }
+.modal-scroll { max-height:70vh; overflow:auto; }
+
+#dataTable tbody tr { cursor:pointer; transition:background-color .12s ease,color .12s ease; }
+#dataTable tbody tr:hover { background:#f1f5f9; }
+#dataTable tbody tr.selected-row { background:#1e293b !important; color:#fff !important; }
+#dataTable tbody tr.selected-row td { color:#fff !important; }
+.table-size-active,.sort-active { background:#0f172a !important; color:#fff !important; border-color:#0f172a !important; }
+.sort-btn { width:30px; height:24px; display:inline-flex; align-items:center; justify-content:center; border-radius:7px; border:1px solid #cbd5e1; color:#64748b; font-size:16px; line-height:1; background:#fff; font-weight:800; }
+.sort-btn:hover { background:#e2e8f0; color:#0f172a; }
+.sort-btn.active { background:#fee2e2; color:#dc2626; border-color:#ef4444; }
+.auth-hidden { display:none !important; }
+.column-hidden { display:none !important; }
+.filter-active { border-color:#2563eb !important; background:#eff6ff !important; }
+@media(max-width:900px){ .workspace{grid-template-columns:1fr; overflow:auto;} .control-panel{overflow:visible;} .app-main{overflow:auto;} body{overflow:auto;} #tableWrapper{height:calc(100vh - 520px); min-height:360px;} }
+</style>
+
+</head>
+
+<body class="min-h-screen bg-slate-100">
+
+<!-- OBM PAYMENT — PREMIUM HEADER -->
+<header id="obmHeader" class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-sm">
+  <div class="mx-auto flex h-[72px] max-w-[1800px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <div class="flex min-w-0 items-center gap-3">
+      <div class="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 text-white shadow-lg shadow-blue-200">
+        <span class="text-lg font-black">OBM</span>
+        <span class="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white"></span>
+      </div>
+      <div class="min-w-0">
+        <div class="truncate text-xl font-black tracking-tight text-slate-900 sm:text-2xl">OBM Payment</div>
+        <div class="truncate text-[10px] font-bold uppercase tracking-[0.22em] text-blue-600 sm:text-xs">Advance Payment Cheaker</div>
+      </div>
+    </div>
+
+    <div id="headerProfileArea" class="relative shrink-0">
+      <button id="headerProfileButton" type="button"
+        onclick="toggleProfilePopup()"
+        class="group flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition hover:border-blue-300 hover:shadow-md">
+        <div id="headerAvatar" class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-sm font-black text-white ring-2 ring-white shadow-sm">U</div>
+        <div class="hidden text-left sm:block">
+          <div id="headerProfileName" class="max-w-[170px] truncate text-sm font-bold text-slate-800">User</div>
+          <div id="headerProfileRole" class="text-[10px] font-bold uppercase tracking-wider text-slate-400">USER</div>
+        </div>
+        <svg class="hidden h-4 w-4 text-slate-400 transition group-hover:text-blue-600 sm:block" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+      </button>
+
+      <div id="profilePopup" class="absolute right-0 top-[58px] hidden w-[330px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15">
+        <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 p-5 text-white">
+          <div class="flex items-center gap-3">
+            <div id="profilePopupAvatar" class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-xl font-black ring-1 ring-white/30">U</div>
+            <div class="min-w-0">
+              <div id="profilePopupName" class="truncate text-lg font-black">User</div>
+              <div id="profilePopupEmail" class="truncate text-xs text-blue-100">—</div>
+              <div id="profilePopupRole" class="mt-1 inline-flex rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">USER</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="rounded-xl bg-slate-50 p-3"><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">My Entries</div><div id="profileEntries" class="mt-1 text-xl font-black text-slate-800">0</div></div>
+            <div class="rounded-xl bg-emerald-50 p-3"><div class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Approved</div><div id="profileApproved" class="mt-1 text-xl font-black text-emerald-700">0</div></div>
+            <div class="rounded-xl bg-amber-50 p-3"><div class="text-[10px] font-bold uppercase tracking-wider text-amber-600">Not Approved</div><div id="profileUnchecked" class="mt-1 text-xl font-black text-amber-700">0</div></div>
+            <div class="rounded-xl bg-blue-50 p-3"><div class="text-[10px] font-bold uppercase tracking-wider text-blue-600">Total Records</div><div id="profileTotal" class="mt-1 text-xl font-black text-blue-700">0</div></div>
+          </div>
+
+          <div id="profileCheckerStats" class="mt-3 hidden rounded-xl border border-indigo-100 bg-indigo-50 p-3">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Checker overview</div>
+            <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+              <div>Pending accounts <b id="profilePendingUsers" class="float-right text-indigo-700">0</b></div>
+              <div>Checked records <b id="profileCheckedRecords" class="float-right text-indigo-700">0</b></div>
+            </div>
+          </div>
+
+          <div class="mt-4 border-t border-slate-100 pt-3">
+            <button type="button" onclick="logoutUser()"
+              class="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-100">
+              <span>↪</span> Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- GLOBAL DATA / REQUEST LOADER -->
+<div id="globalLoader" class="pointer-events-none fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/20 backdrop-blur-[2px]">
+  <div class="mx-4 flex min-w-[260px] max-w-sm items-center gap-4 rounded-2xl border border-white/60 bg-white/95 p-5 shadow-2xl">
+    <div class="h-9 w-9 shrink-0 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
+    <div class="min-w-0">
+      <div id="globalLoaderTitle" class="font-bold text-slate-800">Loading…</div>
+      <div id="globalLoaderText" class="mt-0.5 text-xs text-slate-500">Please wait while data is being fetched.</div>
+    </div>
+  </div>
+</div>
+
+<div id="topProgress" class="pointer-events-none fixed left-0 right-0 top-0 z-[110] hidden h-1 overflow-hidden bg-blue-100">
+  <div class="h-full w-1/3 animate-[obmProgress_1.1s_ease-in-out_infinite] rounded-full bg-blue-600"></div>
+</div>
+<style>
+@keyframes obmProgress { 0%{transform:translateX(-120%)} 100%{transform:translateX(420%)} }
+#profilePopup { transform-origin: top right; }
+</style>
+
+
+
+  <!-- Header -->
+  <!-- <header class="bg-slate-900 text-white shadow">
+    <div class="app-header-inner px-4 py-4">
+      <h1 class="text-2xl font-bold">
+        Payment Records
+      </h1>
+
+      <p class="mt-1 text-sm text-slate-400">
+        Search and view payment information
+      </p>
+    </div>
+  </header> -->
+
+
+  <main class="app-main">
+    <div class="workspace">
+
+      <!-- LEFT CONTROL PANEL -->
+      <aside class="control-panel space-y-4">
+
+        <!-- Search Section -->
+        <section class="rounded-2xl bg-white p-5 shadow-sm">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-800">Search Records</h2>
+            <p class="mt-1 text-sm text-slate-500">
+              Search any column, order number, customer number, payment number, etc.
+            </p>
+          </div>
+
+          <div class="space-y-3">
+            <div class="relative">
+              <input
+                id="searchInput"
+                type="text"
+                placeholder="Search anything..."
+                class="w-full rounded-xl border border-slate-300 px-4 py-3 pr-10
+                       outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              >
+
+              <button
+                onclick="clearSearch()"
+                class="absolute right-3 top-1/2 hidden -translate-y-1/2
+                       text-slate-400 hover:text-slate-700"
+                id="clearButton"
+              >✕</button>
+            </div>
+
+            <button
+              onclick="performSearch()"
+              class="w-full rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+            >Search</button>
+
+            <button
+              onclick="openBulkSearch()"
+              class="w-full rounded-xl bg-violet-600 px-5 py-3 font-semibold text-white transition hover:bg-violet-700"
+            >Bulk Search</button>
+
+            <button
+              onclick="loadSheet()"
+              class="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
+            >Refresh</button>
+          </div>
+
+          <div id="searchInfo" class="mt-4 hidden rounded-xl bg-blue-50 p-3 text-sm text-blue-700"></div>
+        </section>
+
+        <!-- Table Size Controls -->
+        <section class="rounded-2xl bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-slate-800">Sheet Data Size</h3>
+              <p class="mt-1 text-xs text-slate-500">Change row and text size</p>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-3 gap-2">
+            <button type="button" onclick="setTableSize('small')" id="tableSizeSmall"
+              class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              Small
+            </button>
+            <button type="button" onclick="setTableSize('medium')" id="tableSizeMedium"
+              class="table-size-active rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">
+              Medium
+            </button>
+            <button type="button" onclick="setTableSize('large')" id="tableSizeLarge"
+              class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              Large
+            </button>
+          </div>
+        </section>
+
+        <!-- Date Filter -->
+        <section class="rounded-2xl bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h3 class="font-bold text-slate-800">Date Filter</h3>
+              <p class="mt-1 text-xs text-slate-500">Filter records by the Date column</p>
+            </div>
+            <button type="button" onclick="clearDateFilter()" class="text-xs font-semibold text-blue-600 hover:text-blue-800">Clear</button>
+          </div>
+          <select id="dateFilter" onchange="applyDateFilter()" class="mt-4 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+            <option value="all">All dates</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="specific">Specific date</option>
+          </select>
+          <input id="specificDateFilter" type="date" onchange="applyDateFilter()" class="mt-3 hidden w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+        </section>
+
+        <!-- Column View -->
+        <section class="rounded-2xl bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h3 class="font-bold text-slate-800">View Columns</h3>
+              <p class="mt-1 text-xs text-slate-500">Choose which columns are visible</p>
+            </div>
+            <button type="button" onclick="toggleViewPanel()" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">View</button>
+          </div>
+          <div id="columnViewPanel" class="mt-4 hidden max-h-64 overflow-auto space-y-2"></div>
+        </section>
+
+        <!-- Stats -->
+        <section class="grid grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Total Records</p><p id="totalRecords" class="mt-1 text-2xl font-bold text-slate-800">-</p></div>
+          <div class="rounded-2xl bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Unchecked Payment</p><p id="uncheckedPayment" class="mt-1 text-2xl font-bold text-amber-600">-</p></div>
+          <div class="rounded-2xl bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Showing</p><p id="showingRecords" class="mt-1 text-2xl font-bold text-blue-600">-</p></div>
+          <div class="rounded-2xl bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Hiding</p><p id="hidingColumns" class="mt-1 text-2xl font-bold text-rose-600">-</p></div>
+          <div class="col-span-2 rounded-2xl bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Visible Columns</p><p id="columnCount" class="mt-1 text-2xl font-bold text-emerald-600">-</p></div>
+          <div id="myStatsCard" class="col-span-2 hidden rounded-2xl bg-indigo-50 p-4 shadow-sm"><p class="text-xs font-semibold text-indigo-600">My Entries</p><div class="mt-2 grid grid-cols-3 gap-2 text-center"><div><p class="text-xs text-slate-500">Added</p><p id="myAddedCount" class="text-xl font-bold text-slate-800">0</p></div><div><p class="text-xs text-slate-500">Checked</p><p id="myCheckedCount" class="text-xl font-bold text-emerald-600">0</p></div><div><p class="text-xs text-slate-500">Unchecked</p><p id="myUncheckedCount" class="text-xl font-bold text-amber-600">0</p></div></div></div>
+        </section>
+
+      </aside>
+
+      <!-- LARGE DATA AREA -->
+      <section class="data-panel overflow-hidden rounded-2xl bg-white shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+          <div>
+            <h2 class="font-bold text-slate-800">Payment Data</h2>
+            <p class="mt-1 text-xs text-slate-500">
+              Click a row to highlight it. Scroll to see more records.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span id="tableStatus">Ready</span>
+            <button type="button" onclick="clearSort()" class="rounded-lg border border-slate-300 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50">Clear Sort</button>
+            <button type="button" id="addDataButton" onclick="openAddRecordModal()" class="data-edit-btn rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white hover:bg-emerald-700">＋ Add Data</button>
+            <button type="button" id="editDataButton" onclick="openEditSelectedModal()" class="data-edit-btn rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white hover:bg-blue-700">✎ Edit Selected</button>
+            <button type="button" id="deleteDataButton" onclick="deleteSelectedRecord()" class="data-edit-btn rounded-lg bg-red-600 px-3 py-1.5 font-semibold text-white hover:bg-red-700">🗑 Delete Selected</button>
+          </div>
+        </div>
+
+        <div id="loading" class="p-10 text-center text-slate-500">
+          Loading Google Sheet...
+        </div>
+
+        <div id="error" class="hidden p-6"></div>
+
+        <div id="tableWrapper" class="hidden overflow-auto">
+          <table id="dataTable" class="min-w-full whitespace-nowrap text-left text-sm">
+            <thead id="tableHead" class="bg-slate-50"></thead>
+            <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+
+  <!-- AUTHENTICATION MODAL -->
+  <div id="authModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div class="border-b px-6 py-5">
+        <h2 id="authTitle" class="text-xl font-bold text-slate-800">Payment Records Login</h2>
+        <p id="authSubtitle" class="mt-1 text-sm text-slate-500">Sign in to continue.</p>
+      </div>
+      <div class="p-6">
+        <div id="loginPanel" class="space-y-4">
+          <input id="loginEmail" type="email" autocomplete="username" placeholder="Email" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+          <button type="button" onclick="loginUser()" class="w-full rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700">Login</button>
+          <button type="button" onclick="testAppsScriptConnection()" class="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Test Server Connection</button>
+          <div class="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+            <div class="font-bold">First checker login</div>
+            <div class="mt-1">Email: <b>checker@obm.local</b></div>
+            <div>Password: <b>OBM@123456</b></div>
+            <div class="mt-1 text-blue-600">Change these credentials in the Apps Script before production use.</div>
+          </div>
+          <button type="button" onclick="showSignupPanel()" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 font-semibold text-slate-700 hover:bg-slate-50">Create Account</button>
+        </div>
+        <div id="signupPanel" class="auth-hidden space-y-4">
+          <input id="signupName" type="text" autocomplete="name" placeholder="Full name" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+          <input id="signupEmail" type="email" autocomplete="email" placeholder="Email" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+          <input id="signupPassword" type="password" autocomplete="new-password" placeholder="Password (minimum 6 characters)" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+          <select id="signupRole" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+            <option value="inputer">Inputer</option><option value="checker">Checker</option><option value="viewer">Viewer</option>
+          </select>
+          <div class="flex gap-2"><button type="button" onclick="signupUser()" class="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 font-semibold text-white hover:bg-emerald-700">Sign Up</button><button type="button" onclick="showLoginPanel()" class="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 font-semibold text-slate-700 hover:bg-slate-50">Back</button></div>
+        </div>
+        <p id="authStatus" class="mt-4 text-sm text-slate-500"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="pendingUsersModal" class="fixed inset-0 z-[90] hidden overflow-y-auto bg-slate-900/70 p-4 backdrop-blur-sm">
+    <div class="flex min-h-full items-center justify-center"><div class="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b px-6 py-5"><div><h2 class="text-xl font-bold text-slate-800">Pending Accounts</h2><p class="mt-1 text-sm text-slate-500">Approve or reject new users.</p></div><button onclick="closePendingUsers()" class="rounded-lg p-2 text-xl text-slate-400 hover:bg-slate-100">✕</button></div>
+      <div id="pendingUsersList" class="max-h-[65vh] overflow-auto p-6"></div>
+    </div></div>
+  </div>
+
+  <div id="userBar" class="fixed bottom-4 left-4 z-[80] hidden rounded-2xl bg-slate-900 px-4 py-3 text-white shadow-xl">
+    <div class="flex items-center gap-3"><div><div id="currentUserName" class="text-sm font-bold"></div><div id="currentUserRole" class="text-xs text-slate-400"></div></div><button onclick="logoutUser()" class="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/20">Logout</button><button id="pendingUsersButton" onclick="openPendingUsers()" class="auth-hidden rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-900">Approvals</button></div>
+  </div>
+
+  <!-- ============================================================
+       ADD / EDIT RECORD MODAL
+       ============================================================ -->
+  <div id="recordModal" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm">
+    <div class="flex min-h-full items-center justify-center">
+      <div class="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b px-6 py-5">
+          <div>
+            <h2 id="recordModalTitle" class="text-xl font-bold text-slate-800">Add Data</h2>
+            <p id="recordModalSubtitle" class="mt-1 text-sm text-slate-500">Enter values for the new Google Sheet row.</p>
+          </div>
+          <button type="button" onclick="closeRecordModal()" class="rounded-lg p-2 text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700">✕</button>
+        </div>
+        <div id="recordForm" class="modal-scroll grid grid-cols-1 gap-4 p-6 sm:grid-cols-2"></div>
+        <div class="flex items-center justify-between gap-3 border-t bg-slate-50 px-6 py-4">
+          <span id="recordModalStatus" class="text-sm text-slate-500"></span>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeRecordModal()" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+            <button type="button" id="recordSaveButton" onclick="saveRecord()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       BULK SEARCH MODAL
+       ============================================================ -->
+
+  <div
+    id="bulkModal"
+    class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+  >
+    <div class="flex min-h-full items-center justify-center">
+
+      <div class="w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+
+        <!-- Modal header -->
+        <div class="flex items-center justify-between border-b px-6 py-5">
+          <div>
+            <h2 class="text-xl font-bold text-slate-800">
+              Bulk Search
+            </h2>
+            <p class="mt-1 text-sm text-slate-500">
+              Paste one order and amount per line. Example: 65195=1880
+            </p>
+          </div>
+
+          <button
+            onclick="closeBulkSearch()"
+            class="rounded-lg p-2 text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Input -->
+        <div class="p-6">
+
+          <label
+            for="bulkInput"
+            class="mb-2 block text-sm font-semibold text-slate-700"
+          >
+            Bulk data
+          </label>
+
+          <textarea
+            id="bulkInput"
+            rows="12"
+            spellcheck="false"
+            placeholder="65195=1880
+65143=100
+65143=100
+65585=200
+65539=1210"
+            class="w-full resize-y rounded-xl border border-slate-300 px-4 py-3
+                   font-mono text-sm outline-none transition
+                   focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+          ></textarea>
+
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+
+            <p class="text-xs text-slate-500">
+              Order number can be entered as 65195 or OBM-65195.
+            </p>
+
+            <div class="flex gap-2">
+              <button
+                onclick="clearBulkInput()"
+                class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Clear
+              </button>
+
+              <button
+                onclick="runBulkSearch()"
+                class="rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+              >
+                Check All
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div id="bulkSummary" class="hidden border-y bg-slate-50 p-6"></div>
+
+        <!-- Results -->
+        <div id="bulkResults" class="hidden p-6"></div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- COPY PREVIEW MODAL -->
+  <div id="copyPreviewModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b px-5 py-4">
+        <div>
+          <h3 id="copyPreviewTitle" class="text-lg font-bold text-slate-800">Copy Preview</h3>
+          <p class="mt-1 text-xs text-slate-500">The following text will be copied.</p>
+        </div>
+        <button type="button" onclick="closeCopyPreview()" class="rounded-lg p-2 text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close">✕</button>
+      </div>
+      <div class="p-5">
+        <textarea id="copyPreviewText" readonly rows="14" class="w-full resize-y rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-800 outline-none"></textarea>
+        <div class="mt-4 flex justify-end gap-2">
+          <button type="button" onclick="closeCopyPreview()" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Close</button>
+          <button id="copyPreviewButton" type="button" onclick="confirmCopyBulkCategory()" class="rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-700">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+<script>
+
+  // ============================================================
+  // GOOGLE SHEET SETTINGS
+  // ============================================================
+
+  // official sheet = https://docs.google.com/spreadsheets/d/1LaxbfPDe-709Fx9H8gaNULkfRPnhKXiF8Oe0kDc9p-o/edit?pli=1&gid=0#gid=0
+  // const SHEET_ID = "1LaxbfPDe-709Fx9H8gaNULkfRPnhKXiF8Oe0kDc9p-o";
+  const GID = "0";
+
+  // my sheet = https://docs.google.com/spreadsheets/d/1gX9-HDBzb9DRDfvAY82THiCk5yealxylINOQZ_b3h5k/edit?gid=0#gid=0
+  const SHEET_ID = "1gX9-HDBzb9DRDfvAY82THiCk5yealxylINOQZ_b3h5k";
+
+
+
+  // ============================================================
+  // GLOBAL DATA
+  // ============================================================
+
+  let headers = [];
+  let allRows = [];
+  let filteredRows = [];
+  let sortState = { index: null, direction: null };
+  let dateFilterState = { type: "all", value: "" };
+  let visibleColumns = [];
+  let columnWidths = JSON.parse(localStorage.getItem("paymentColumnWidths") || "{}");
+  // ============================================================
+  // GOOGLE SHEET WRITE CONNECTION
+  // IMPORTANT: this must be the current /exec URL of the deployed Apps Script.
+  // ============================================================
+  const WRITE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwNjmA3-7Kg4hE8SStqll1B3DYvbJu_hPlvXZSYtQe3Ukbl6uofbdVG_A_8MKKS2yhCRw/exec";
+  const writeWebAppUrl = WRITE_WEB_APP_URL;
+  let editingRowIndex = null;
+
+  // Table display size: small, medium, or large.
+  let tableSize = localStorage.getItem("paymentTableSize") || "medium";
+
+
+  // ============================================================
+  // LOAD GOOGLE SHEET
+  // ============================================================
+
+  async function loadSheet() {
+
+    showLoading();
+
+    try {
+
+      const url =
+        `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error("Could not access Google Sheet.");
+      }
+
+      const text = await response.text();
+
+
+      // Google Visualization returns JSONP-like data.
+      const json = JSON.parse(
+        text.substring(47).slice(0, -2)
+      );
+      console.log(json);
+
+
+      const table = json.table;
+
+      const rawRows = table.rows || [];
+
+
+      // ========================================================
+      // DETERMINE MAXIMUM NUMBER OF COLUMNS
+      // ========================================================
+
+      let maxColumns = 0;
+
+      rawRows.forEach(row => {
+
+        if (row.c) {
+          maxColumns = Math.max(
+            maxColumns,
+            row.c.length
+          );
+        }
+
+      });
+
+
+      // ========================================================
+      // GET HEADERS
+      // ========================================================
+
+      headers = [];
+
+      for (let i = 0; i < maxColumns; i++) {
+
+        let label = "";
+
+        if (table.cols && table.cols[i]) {
+
+          label =
+            table.cols[i].label ||
+            table.cols[i].id ||
+            "";
+
+        }
+
+        headers.push(
+          label.trim()
+        );
+
+      }
+      headers[0] = "Date";
+    //   headers.splice(10);
+      console.log("Headers:", headers);
+
+
+      // ========================================================
+      // CREATE RAW ROW DATA
+      // ========================================================
+
+      let rows = rawRows.map(row => {
+
+        const values = [];
+
+        for (let i = 0; i < maxColumns; i++) {
+
+          const cell =
+            row.c?.[i];
+
+          values.push(
+            cell?.f ??
+            cell?.v ??
+            ""
+          );
+
+        }
+
+        return values;
+
+      });
+
+
+      // ========================================================
+      // REMOVE COMPLETELY BLANK ROWS
+      // ========================================================
+
+      rows = rows.filter(row =>
+
+        row.some(value =>
+          String(value).trim() !== ""
+        )
+
+      );
+
+
+      // ========================================================
+      // REMOVE COMPLETELY BLANK COLUMNS
+      // ========================================================
+
+      const columnsToKeep = [];
+
+      for (let col = 0; col < maxColumns; col++) {
+
+        const hasData = rows.some(row =>
+          String(row[col] ?? "").trim() !== ""
+        );
+
+        if (hasData) {
+          columnsToKeep.push(col);
+        }
+
+      }
+
+
+      // Keep only columns containing data
+      headers = columnsToKeep.map(
+        index => headers[index]
+      );
+
+
+      rows = rows.map(row =>
+        columnsToKeep.map(
+          index => row[index] ?? ""
+        )
+      );
+
+
+      // ========================================================
+      // HANDLE EMPTY HEADERS
+      // ========================================================
+
+      headers = headers.map(
+        (header, index) => {
+
+          if (
+            !header ||
+            header.trim() === ""
+          ) {
+
+            return `Column ${index + 1}`;
+
+          }
+
+          return header;
+
+        }
+      );
+
+
+      allRows = rows;
+      window.selectedTableRow = null;
+      window.selectedTableRowRef = null;
+      visibleColumns = headers.map(() => true);
+      filteredRows = [...rows];
+      sortState = { index: null, direction: null };
+      dateFilterState = { type: "all", value: "" };
+      document.getElementById("dateFilter").value = "all";
+      document.getElementById("specificDateFilter").value = "";
+      buildColumnView();
+
+
+      // ========================================================
+      // DISPLAY
+      // ========================================================
+
+      renderTable();
+
+      updateStats();
+
+
+      document
+        .getElementById("loading")
+        .classList.add("hidden");
+
+      document
+        .getElementById("tableWrapper")
+        .classList.remove("hidden");
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      showError(
+        "Unable to load Google Sheet. " +
+        "Make sure the sheet is publicly accessible."
+      );
+
+    }
+
+  }
+
+
+  // ============================================================
+  // RENDER TABLE
+  // ============================================================
+
+  function renderTable() {
+    const tableHead = document.getElementById("tableHead");
+    const tableBody = document.getElementById("tableBody");
+    tableHead.innerHTML = "";
+    tableBody.innerHTML = "";
+
+    const headerRow = document.createElement("tr");
+
+    headers.forEach((header, index) => {
+      const th = document.createElement("th");
+      th.dataset.colIndex = index;
+      th.className = "px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500";
+      if (!visibleColumns[index]) th.classList.add("column-hidden");
+
+      const savedWidth = Number(columnWidths[index]);
+      if (Number.isFinite(savedWidth) && savedWidth >= 70) {
+        th.style.width = savedWidth + "px";
+        th.style.minWidth = savedWidth + "px";
+        th.style.maxWidth = savedWidth + "px";
+      }
+
+      const wrap = document.createElement("div");
+      wrap.className = "flex items-start gap-2";
+      const label = document.createElement("span");
+      label.textContent = header;
+      label.className = "header-label min-w-0 flex-1";
+      wrap.appendChild(label);
+
+      const arrows = document.createElement("span");
+      arrows.className = "inline-flex shrink-0";
+      const sortButton = document.createElement("button");
+      sortButton.type = "button"; sortButton.className = "sort-btn"; sortButton.title = "Click to sort; click again to reverse"; sortButton.textContent = "⇅";
+      if (sortState.index === index) sortButton.classList.add("active");
+      sortButton.addEventListener("click", e => { e.stopPropagation(); toggleSortColumn(index); });
+      arrows.append(sortButton);
+      wrap.appendChild(arrows);
+      th.appendChild(wrap);
+
+      const handle = document.createElement("span");
+      handle.className = "resize-handle";
+      handle.title = "Drag to resize column";
+      handle.addEventListener("mousedown", e => startColumnResize(e, index, th));
+      th.appendChild(handle);
+
+      headerRow.appendChild(th);
+    });
+
+    tableHead.appendChild(headerRow);
+
+    filteredRows.forEach((row, rowIndex) => {
+      const tr = document.createElement("tr");
+      tr.dataset.rowIndex = rowIndex;
+      if (window.selectedTableRowRef === row) tr.classList.add("selected-row");
+
+      tr.addEventListener("click", () => {
+        document.querySelectorAll("#tableBody tr.selected-row").forEach(item => item.classList.remove("selected-row"));
+        tr.classList.add("selected-row");
+        window.selectedTableRow = rowIndex;
+        window.selectedTableRowRef = row;
+        const status = document.getElementById("tableStatus");
+        if (status) status.textContent = `Row ${rowIndex + 1} selected`;
+      });
+
+      row.forEach((value, index) => {
+        const td = document.createElement("td");
+        td.dataset.colIndex = index;
+        td.className = "px-4 py-3 text-slate-700";
+        if (!visibleColumns[index]) td.classList.add("column-hidden");
+
+        const savedWidth = Number(columnWidths[index]);
+        if (Number.isFinite(savedWidth) && savedWidth >= 70) {
+          td.style.width = savedWidth + "px";
+          td.style.minWidth = savedWidth + "px";
+          td.style.maxWidth = savedWidth + "px";
+        }
+
+        // Keep the complete text. When the column is narrow, it wraps downward
+        // instead of disappearing/truncating.
+        td.textContent = value;
+
+        const header = String(headers[index] || "").toLowerCase();
+        if (header.includes("payment") || header.includes("amount")) {
+          td.className += " font-semibold text-emerald-700";
+        }
+        tr.appendChild(td);
+      });
+      tableBody.appendChild(tr);
+    });
+
+    if (filteredRows.length === 0) {
+      const tr = document.createElement("tr"), td = document.createElement("td");
+      td.colSpan = Math.max(headers.length, 1);
+      td.className = "px-6 py-12 text-center text-slate-500";
+      td.textContent = "No matching records found.";
+      tr.appendChild(td);
+      tableBody.appendChild(tr);
+    }
+
+    applyTableSize();
+    updateSortButtons();
+  }
+
+  function startColumnResize(event, index, th) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startWidth = th.getBoundingClientRect().width;
+    const MIN_WIDTH = 70;
+
+    th.classList.add("resizing");
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    function onMove(e) {
+      const newWidth = Math.max(MIN_WIDTH, Math.round(startWidth + (e.clientX - startX)));
+      columnWidths[index] = newWidth;
+      applyColumnWidth(index, newWidth);
+    }
+
+    function onUp() {
+      th.classList.remove("resizing");
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      localStorage.setItem("paymentColumnWidths", JSON.stringify(columnWidths));
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+
+  function applyColumnWidth(index, width) {
+    document.querySelectorAll(`#dataTable th[data-col-index="${index}"], #dataTable td[data-col-index="${index}"]`)
+      .forEach(cell => {
+        cell.style.width = width + "px";
+        cell.style.minWidth = width + "px";
+        cell.style.maxWidth = width + "px";
+      });
+  }
+
+  function sortByColumn(index, direction) {
+    sortState = { index, direction };
+    const multiplier = direction === "asc" ? 1 : -1;
+    filteredRows.sort((a,b) => compareValues(a[index], b[index], index) * multiplier);
+    renderTable();
+    document.getElementById("tableStatus").textContent = `${headers[index]} — ${direction === "asc" ? "Ascending" : "Descending"}`;
+  }
+
+  function compareValues(a,b,index) {
+    const av = String(a ?? "").trim(), bv = String(b ?? "").trim();
+    const header = String(headers[index] || "").toLowerCase();
+    if (header.includes("date") || index === 0) {
+      const ad = parseDateValue(av), bd = parseDateValue(bv);
+      if (ad !== null && bd !== null) return ad - bd;
+    }
+    const an = amountNumber(av), bn = amountNumber(bv);
+    if ((header.includes("amount") || header.includes("payment") || header.includes("number") || /^\d+$/.test(av) || /^\d+$/.test(bv)) && Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
+    return av.localeCompare(bv, undefined, { numeric:true, sensitivity:"base" });
+  }
+
+  function clearSort() {
+    sortState = { index:null, direction:null };
+    filteredRows = [...allRows];
+    applyAllFilters(false);
+    document.getElementById("tableStatus").textContent = "Sort cleared";
+  }
+
+  function updateSortButtons() {
+    document.querySelectorAll(".sort-btn").forEach(btn => btn.classList.remove("active"));
+    if (sortState.index === null) return;
+    const th = document.querySelector(`#tableHead th[data-col-index="${sortState.index}"]`);
+    th?.querySelector(".sort-btn")?.classList.add("active");
+  }
+
+  function toggleSortColumn(index) {
+    const direction = sortState.index === index && sortState.direction === "asc" ? "desc" : "asc";
+    sortByColumn(index, direction);
+  }
+
+  function parseDateValue(value) {
+    const s = String(value ?? "").trim(); if (!s) return null;
+    let d = new Date(s);
+    if (!Number.isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    let m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+    if (m) { d = new Date(Number(m[3]), Number(m[2])-1, Number(m[1])); return d.getTime(); }
+    m = s.match(/^(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})$/);
+    if (m) { d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3])); return d.getTime(); }
+    return null;
+  }
+
+  function localDateKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+  function rowDateKey(row) { const value = row[0] ?? ""; const t = parseDateValue(value); return t === null ? "" : localDateKey(new Date(t)); }
+
+  function applyDateFilter() {
+    const type = document.getElementById("dateFilter").value;
+    const specific = document.getElementById("specificDateFilter");
+    specific.classList.toggle("hidden", type !== "specific");
+    dateFilterState = { type, value: specific.value };
+    applyAllFilters();
+  }
+
+  function clearDateFilter() {
+    document.getElementById("dateFilter").value = "all"; document.getElementById("specificDateFilter").value = "";
+    dateFilterState = { type:"all", value:"" }; document.getElementById("specificDateFilter").classList.add("hidden"); applyAllFilters();
+  }
+
+  function dateFilterMatches(row) {
+    if (dateFilterState.type === "all") return true;
+    const key = rowDateKey(row); if (!key) return false;
+    const today = new Date(); const todayKey = localDateKey(today);
+    if (dateFilterState.type === "today") return key === todayKey;
+    if (dateFilterState.type === "yesterday") { today.setDate(today.getDate()-1); return key === localDateKey(today); }
+    return dateFilterState.value ? key === dateFilterState.value : true;
+  }
+
+  function applyAllFilters(showInfo = true) {
+    const search = document.getElementById("searchInput").value.trim().toLowerCase();
+    filteredRows = allRows.filter(row => {
+      const searchMatch = !search || row.some(value => String(value ?? "").toLowerCase().includes(search));
+      return searchMatch && dateFilterMatches(row);
+    });
+    if (sortState.index !== null) { const m = sortState.direction === "asc" ? 1 : -1; filteredRows.sort((a,b) => compareValues(a[sortState.index], b[sortState.index], sortState.index) * m); }
+    if (showInfo && search) showSearchInfo(`Found ${filteredRows.length} matching record(s) for "${search}"`);
+    else if (!search) hideSearchInfo();
+    renderTable(); updateStats();
+  }
+
+  function buildColumnView() {
+    const panel = document.getElementById("columnViewPanel"); if (!panel) return; panel.innerHTML = "";
+    headers.forEach((header,index) => {
+      const label = document.createElement("label"); label.className = "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer";
+      const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.checked = visibleColumns[index] !== false; checkbox.dataset.index = index; checkbox.className = "h-4 w-4 rounded border-slate-300";
+      checkbox.addEventListener("change", () => { visibleColumns[index] = checkbox.checked; renderTable(); updateStats(); });
+      label.append(checkbox, document.createTextNode(header)); panel.appendChild(label);
+    });
+  }
+
+  function toggleViewPanel() { document.getElementById("columnViewPanel").classList.toggle("hidden"); }
+
+  function setTableSize(size) {
+    tableSize = size; localStorage.setItem("paymentTableSize", size);
+    document.querySelectorAll("#tableSizeSmall,#tableSizeMedium,#tableSizeLarge").forEach(button => { button.classList.remove("table-size-active"); button.classList.add("text-slate-700"); });
+    const active=document.getElementById(size === "small" ? "tableSizeSmall" : size === "large" ? "tableSizeLarge" : "tableSizeMedium"); if(active){active.classList.add("table-size-active");active.classList.remove("text-slate-700");} applyTableSize();
+  }
+
+  function applyTableSize() {
+    const table=document.getElementById("dataTable"); if(!table)return; const cells=table.querySelectorAll("th,td");
+    let sizeClass=""; if(tableSize === "small") sizeClass="text-xs"; else if(tableSize === "large") sizeClass="text-base"; else sizeClass="text-sm";
+    cells.forEach(cell=>{cell.classList.remove("text-xs","text-sm","text-base");cell.classList.add(sizeClass);}); setTableSizeVisualOnly();
+  }
+
+  function setTableSizeVisualOnly(){ document.querySelectorAll("#tableSizeSmall,#tableSizeMedium,#tableSizeLarge").forEach(button=>{button.classList.remove("table-size-active");}); const id=tableSize === "small" ? "tableSizeSmall" : tableSize === "large" ? "tableSizeLarge" : "tableSizeMedium"; document.getElementById(id)?.classList.add("table-size-active"); }
+
+  // ============================================================
+  // SEARCH
+  // ============================================================
+
+  function performSearch() { applyAllFilters(); }
+
+  // ============================================================
+  // SEARCH WHILE TYPING
+  // ============================================================
+
+  document
+    .getElementById("searchInput")
+    .addEventListener(
+      "input",
+      function () {
+
+        const value =
+          this.value.trim();
+
+
+        document
+          .getElementById("clearButton")
+          .classList.toggle(
+            "hidden",
+            value === ""
+          );
+
+
+        performSearch();
+
+      }
+    );
+
+
+  // ============================================================
+  // ENTER KEY
+  // ============================================================
+
+  document
+    .getElementById("searchInput")
+    .addEventListener(
+      "keydown",
+      function(event) {
+
+        if (event.key === "Enter") {
+
+          performSearch();
+
+        }
+
+      }
+    );
+
+
+  // ============================================================
+  // CLEAR SEARCH
+  // ============================================================
+
+  function clearSearch() {
+    const input=document.getElementById("searchInput"); input.value=""; document.getElementById("clearButton").classList.add("hidden"); hideSearchInfo(); applyAllFilters(); input.focus();
+  }
+
+  // ============================================================
+  // STATISTICS
+  // ============================================================
+
+  function updateStats() {
+    document.getElementById("totalRecords").textContent = allRows.length;
+    document.getElementById("showingRecords").textContent = filteredRows.length;
+    document.getElementById("columnCount").textContent = visibleColumns.filter(Boolean).length;
+    document.getElementById("hidingColumns").textContent = Math.max(0, allRows.length - filteredRows.length);
+    const checkIndex = getHeaderIndex("Management check");
+    const unchecked = checkIndex >= 0 ? allRows.filter(row => normalizeManagement(row[checkIndex]) === "Unchecked").length : 0;
+    document.getElementById("uncheckedPayment").textContent = unchecked;
+    updateMyStats();
+  }
+
+  function normalizeManagement(v) {
+    const x = String(v ?? "").trim().toLowerCase();
+    return x === "agm" ? "AGM" : x === "gm" ? "GM" : "Unchecked";
+  }
+
+  function getHeaderIndex(name) {
+    const target = name.toLowerCase();
+    return headers.findIndex(h => String(h).trim().toLowerCase() === target);
+  }
+
+  function updateMyStats() {
+    const card = document.getElementById("myStatsCard");
+    if (!currentUser || currentUser.role !== "inputer") { card.classList.add("hidden"); return; }
+    card.classList.remove("hidden");
+    const refIndex = getHeaderIndex("Reference");
+    const checkIndex = getHeaderIndex("Management check");
+    const mine = refIndex >= 0 ? allRows.filter(r => String(r[refIndex] ?? "").trim().toLowerCase() === currentUser.name.trim().toLowerCase()) : [];
+    const checked = checkIndex >= 0 ? mine.filter(r => normalizeManagement(r[checkIndex]) !== "Unchecked").length : 0;
+    document.getElementById("myAddedCount").textContent = mine.length;
+    document.getElementById("myCheckedCount").textContent = checked;
+    document.getElementById("myUncheckedCount").textContent = mine.length - checked;
+  }
+
+  // ============================================================
+  // UI HELPERS
+  // ============================================================
+
+  function showLoading() {
+
+    document
+      .getElementById("loading")
+      .classList.remove("hidden");
+
+    document
+      .getElementById("tableWrapper")
+      .classList.add("hidden");
+
+    document
+      .getElementById("error")
+      .classList.add("hidden");
+
+  }
+
+
+  function showError(message) {
+
+    document
+      .getElementById("loading")
+      .classList.add("hidden");
+
+
+    const error =
+      document.getElementById("error");
+
+
+    error.classList.remove("hidden");
+
+
+    error.innerHTML = `
+
+      <div class="rounded-xl bg-red-50 p-5 text-red-700">
+
+        <div class="font-semibold">
+          Error
+        </div>
+
+        <div class="mt-1 text-sm">
+          ${message}
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+
+  function showSearchInfo(message) {
+
+    const info =
+      document.getElementById("searchInfo");
+
+    info.textContent =
+      message;
+
+    info.classList.remove("hidden");
+
+  }
+
+
+  function hideSearchInfo() {
+
+    document
+      .getElementById("searchInfo")
+      .classList.add("hidden");
+
+  }
+
+
+
+  // ============================================================
+  // BULK SEARCH
+  // ============================================================
+
+  function openBulkSearch() {
+    document.getElementById("bulkModal").classList.remove("hidden");
+    document.body.classList.add("overflow-hidden");
+
+    // If data is not loaded yet, make that clear in the modal.
+    if (!allRows.length) {
+      showBulkMessage(
+        "Google Sheet data is not loaded yet. Please wait for the sheet to finish loading.",
+        "warning"
+      );
+    }
+
+    setTimeout(() => {
+      document.getElementById("bulkInput").focus();
+    }, 50);
+  }
+
+
+  function closeBulkSearch() {
+    document.getElementById("bulkModal").classList.add("hidden");
+    document.body.classList.remove("overflow-hidden");
+  }
+
+
+  function clearBulkInput() {
+    document.getElementById("bulkInput").value = "";
+    document.getElementById("bulkSummary").classList.add("hidden");
+    document.getElementById("bulkResults").classList.add("hidden");
+    document.getElementById("bulkInput").focus();
+  }
+
+
+  // Convert OBM-65195 and 65195 to the same searchable key.
+  function normalizeOrderNumber(value) {
+    return String(value ?? "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .replace(/^OBM-?/, "");
+  }
+
+
+  function formatTk(value) {
+    const number = Number(String(value ?? "").replace(/,/g, "").trim());
+
+    if (!Number.isFinite(number)) {
+      return String(value ?? "").trim() || "—";
+    }
+
+    return "৳" + number.toLocaleString("en-BD", {
+      maximumFractionDigits: 2
+    });
+  }
+
+
+  function amountNumber(value) {
+    const cleaned = String(value ?? "")
+      .replace(/[৳,\s]/g, "")
+      .trim();
+
+    if (!cleaned) return NaN;
+
+    const number = Number(cleaned);
+    return Number.isFinite(number) ? number : NaN;
+  }
+
+
+  // Find the actual sheet columns by their header names.
+  function getBulkColumnIndexes() {
+    const normalizedHeaders = headers.map(h =>
+      String(h ?? "").trim().toLowerCase()
+    );
+
+    const orderIndex = normalizedHeaders.findIndex(h =>
+      h === "order number" ||
+      h.includes("order number")
+    );
+
+    const paymentIndex = normalizedHeaders.findIndex(h =>
+      h === "advance payment amount" ||
+      h.includes("advance payment amount")
+    );
+
+    return {
+      orderIndex,
+      paymentIndex
+    };
+  }
+
+
+  function runBulkSearch() {
+
+    const rawInput =
+      document.getElementById("bulkInput").value;
+
+    const lines = rawInput
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+
+    if (!lines.length) {
+      showBulkMessage(
+        "Please paste your bulk data first.",
+        "warning"
+      );
+      return;
+    }
+
+
+    if (!allRows.length || !headers.length) {
+      showBulkMessage(
+        "Google Sheet data is not available yet. Click Refresh and try again.",
+        "error"
+      );
+      return;
+    }
+
+
+    const { orderIndex, paymentIndex } =
+      getBulkColumnIndexes();
+
+
+    if (orderIndex === -1) {
+      showBulkMessage(
+        'Could not find the "Order Number" column in the Google Sheet.',
+        "error"
+      );
+      return;
+    }
+
+
+    if (paymentIndex === -1) {
+      showBulkMessage(
+        'Could not find the "Advance Payment Amount" column in the Google Sheet.',
+        "error"
+      );
+      return;
+    }
+
+
+    // ------------------------------------------------------------
+    // Parse input
+    // ------------------------------------------------------------
+
+    const inputs = [];
+    const invalidLines = [];
+
+    lines.forEach((line, index) => {
+
+      // Allow spaces around "=" and also full-width equals.
+      const match = line.match(/^\s*(.*?)\s*=\s*([0-9]+(?:[.,][0-9]+)?)\s*$/);
+
+      if (!match) {
+        invalidLines.push({
+          line: index + 1,
+          text: line
+        });
+        return;
+      }
+
+      const order = normalizeOrderNumber(match[1]);
+      const amount = amountNumber(match[2]);
+
+      if (!order || !Number.isFinite(amount)) {
+        invalidLines.push({
+          line: index + 1,
+          text: line
+        });
+        return;
+      }
+
+      inputs.push({
+        line: index + 1,
+        originalOrder: match[1].trim(),
+        order,
+        amount,
+        inputAmountText: match[2].trim()
+      });
+
+    });
+
+
+    // ------------------------------------------------------------
+    // Build an index of all sheet records.
+    // Important: multiple rows with the same order are preserved.
+    // ------------------------------------------------------------
+
+    const sheetIndex = new Map();
+
+    allRows.forEach((row, rowIndex) => {
+
+      const orderKey =
+        normalizeOrderNumber(row[orderIndex]);
+
+      if (!orderKey) return;
+
+      if (!sheetIndex.has(orderKey)) {
+        sheetIndex.set(orderKey, []);
+      }
+
+      sheetIndex.get(orderKey).push({
+        row,
+        rowIndex,
+        amount: amountNumber(row[paymentIndex]),
+        rawAmount: row[paymentIndex]
+      });
+
+    });
+
+
+    // ------------------------------------------------------------
+    // Compare every input line.
+    // ------------------------------------------------------------
+
+    const results = inputs.map(item => {
+
+      const matches =
+        sheetIndex.get(item.order) || [];
+
+
+      // Order does not exist.
+      if (matches.length === 0) {
+
+        return {
+          ...item,
+          status: "missing",
+          matches: []
+        };
+
+      }
+
+
+      // Order exists. Compare against every matching sheet row.
+      const sameAmount =
+        matches.some(match =>
+          Number.isFinite(match.amount) &&
+          match.amount === item.amount
+        );
+
+
+      if (sameAmount) {
+
+        return {
+          ...item,
+          status: "same",
+          matches
+        };
+
+      }
+
+
+      return {
+        ...item,
+        status: "mismatch",
+        matches
+      };
+
+    });
+
+
+    // Keep the latest bulk-search data available to the Copy buttons.
+    window.bulkSearchData = { results, invalidLines };
+
+    renderBulkSummary(
+      results,
+      invalidLines
+    );
+
+    renderBulkResults(
+      results,
+      invalidLines
+    );
+
+  }
+
+
+  // ------------------------------------------------------------
+  // SUMMARY
+  // ------------------------------------------------------------
+
+  function renderBulkSummary(results, invalidLines) {
+
+    const total = results.length;
+    const same = results.filter(r => r.status === "same").length;
+    const mismatch = results.filter(r => r.status === "mismatch").length;
+    const missing = results.filter(r => r.status === "missing").length;
+    const invalid = invalidLines.length;
+
+
+    const summary =
+      document.getElementById("bulkSummary");
+
+
+    summary.classList.remove("hidden");
+
+
+    summary.innerHTML = `
+
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <h3 class="font-bold text-slate-800">
+          Bulk Search Summary
+        </h3>
+
+        <span class="text-xs text-slate-500">
+          ${total + invalid} input line(s)
+        </span>
+      </div>
+
+
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+
+        <div class="rounded-xl bg-emerald-50 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-xs font-medium text-emerald-600">
+              Amount Same
+            </p>
+            <button type="button"
+                    onclick="copyBulkCategory('same')"
+                    class="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700">
+              Copy
+            </button>
+          </div>
+          <p class="mt-1 text-2xl font-bold text-emerald-700">
+            ${same}
+          </p>
+        </div>
+
+
+        <div class="rounded-xl bg-red-50 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-xs font-medium text-red-600">
+              Amount Mismatch
+            </p>
+            <button type="button"
+                    onclick="copyBulkCategory('mismatch')"
+                    class="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-red-700">
+              Copy
+            </button>
+          </div>
+          <p class="mt-1 text-2xl font-bold text-red-700">
+            ${mismatch}
+          </p>
+        </div>
+
+
+        <div class="rounded-xl bg-amber-50 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-xs font-medium text-amber-600">
+              Not Added
+            </p>
+            <button type="button"
+                    onclick="copyBulkCategory('missing')"
+                    class="rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-700">
+              Copy
+            </button>
+          </div>
+          <p class="mt-1 text-2xl font-bold text-amber-700">
+            ${missing}
+          </p>
+        </div>
+
+
+        <div class="rounded-xl bg-slate-100 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-xs font-medium text-slate-500">
+              Invalid Lines
+            </p>
+            <button type="button"
+                    onclick="copyBulkCategory('invalid')"
+                    class="rounded-lg bg-slate-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-700">
+              Copy
+            </button>
+          </div>
+          <p class="mt-1 text-2xl font-bold text-slate-700">
+            ${invalid}
+          </p>
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // Show a preview before copying a bulk-search category.
+  let pendingCopyText = "";
+
+  function getBulkCopyText(type) {
+    if (!window.bulkSearchData) return "";
+
+    if (type === "same") {
+      return window.bulkSearchData.results
+        .filter(r => r.status === "same")
+        .map(r => `${r.order}=${r.inputAmountText}`)
+        .join("\n");
+    }
+    if (type === "mismatch") {
+      return window.bulkSearchData.results
+        .filter(r => r.status === "mismatch")
+        .map(r => `${r.order}=${r.inputAmountText}`)
+        .join("\n");
+    }
+    if (type === "missing") {
+      return window.bulkSearchData.results
+        .filter(r => r.status === "missing")
+        .map(r => `${r.order}=${r.inputAmountText}`)
+        .join("\n");
+    }
+    if (type === "invalid") {
+      return window.bulkSearchData.invalidLines.map(item => item.text).join("\n");
+    }
+    return "";
+  }
+
+function copyBulkCategory(type) {
+  const text = getBulkCopyText(type);
+
+  const titles = {
+    same: "Amount Same",
+    mismatch: "Amount Mismatch",
+    missing: "Not Added",
+    invalid: "Invalid Lines"
+  };
+
+  const modal = document.getElementById("copyPreviewModal");
+  const title = document.getElementById("copyPreviewTitle");
+  const textArea = document.getElementById("copyPreviewText");
+  const button = document.getElementById("copyPreviewButton");
+
+  // No data found
+  if (!text) {
+    title.textContent = titles[type] || "No Data";
+    textArea.value = "No data available to copy.";
+    
+    button.textContent = "Close";
+    button.disabled = false;
+    button.classList.remove("opacity-70", "cursor-not-allowed");
+
+    // Change button action temporarily to close
+    button.onclick = closeCopyPreview;
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    return;
+  }
+
+  // Data exists
+  pendingCopyText = text;
+
+  title.textContent = titles[type] + " — Copy";
+  textArea.value = text;
+
+  button.textContent = "Copy";
+  button.disabled = false;
+  button.classList.remove("opacity-70", "cursor-not-allowed");
+
+  // Restore copy action
+  button.onclick = confirmCopyBulkCategory;
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+  function closeCopyPreview() {
+    const modal = document.getElementById("copyPreviewModal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    pendingCopyText = "";
+  }
+
+  async function confirmCopyBulkCategory() {
+    if (!pendingCopyText) return;
+
+    const button = document.getElementById("copyPreviewButton");
+    try {
+      await navigator.clipboard.writeText(pendingCopyText);
+    } catch (error) {
+      const area = document.createElement("textarea");
+      area.value = pendingCopyText;
+      area.style.position = "fixed";
+      area.style.left = "-9999px";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+
+    button.textContent = "Copied";
+    button.disabled = true;
+    button.classList.add("opacity-70", "cursor-not-allowed");
+  }
+
+
+  // ------------------------------------------------------------
+  // RESULTS TABLE
+  // ------------------------------------------------------------
+
+  function renderBulkResults(results, invalidLines) {
+
+    const container =
+      document.getElementById("bulkResults");
+
+
+    container.classList.remove("hidden");
+
+
+    let html = "";
+
+
+    // Invalid input lines
+    if (invalidLines.length) {
+
+      html += `
+
+        <div class="mb-5 rounded-xl bg-slate-100 p-4">
+
+          <h4 class="font-semibold text-slate-700">
+            Invalid input lines
+          </h4>
+
+          <div class="mt-2 space-y-1 text-sm text-slate-600">
+            ${invalidLines.map(item => `
+              <div>
+                Line ${item.line}:
+                <span class="font-mono">${escapeHtml(item.text)}</span>
+              </div>
+            `).join("")}
+          </div>
+
+          <p class="mt-2 text-xs text-slate-500">
+            Expected format: 65195=1880
+          </p>
+
+        </div>
+
+      `;
+
+    }
+
+
+    if (!results.length) {
+
+      container.innerHTML =
+        html +
+        `<div class="rounded-xl bg-slate-50 p-8 text-center text-slate-500">
+          No valid records to check.
+        </div>`;
+
+      return;
+
+    }
+
+
+    html += `
+
+      <div class="overflow-x-auto rounded-xl border border-slate-200">
+
+        <table class="min-w-full whitespace-nowrap text-left text-sm">
+
+          <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+
+            <tr>
+              <th class="px-4 py-3">#</th>
+              <th class="px-4 py-3">Order Number</th>
+              <th class="px-4 py-3">Your Amount</th>
+              <th class="px-4 py-3">Sheet Amount</th>
+              <th class="px-4 py-3">Status</th>
+            </tr>
+
+          </thead>
+
+          <tbody class="divide-y divide-slate-100">
+
+    `;
+
+
+    results.forEach((result, index) => {
+
+      let sheetAmount = "—";
+      let extra = "";
+
+
+      if (result.matches.length) {
+
+        const amounts = result.matches
+          .map(match => match.rawAmount)
+          .filter(value => String(value ?? "").trim() !== "");
+
+
+        sheetAmount =
+          amounts.length
+            ? amounts.map(formatTk).join(", ")
+            : "—";
+
+
+        if (result.matches.length > 1) {
+
+          extra = `
+            <div class="mt-1 text-xs text-slate-500">
+              ${result.matches.length} sheet records found
+            </div>
+          `;
+
+        }
+
+      }
+
+
+      let statusHtml = "";
+      let rowClass = "";
+
+
+      if (result.status === "same") {
+
+        rowClass = "bg-emerald-50/40";
+
+        statusHtml = `
+          <span class="inline-flex items-center rounded-full bg-emerald-100
+                       px-3 py-1 text-xs font-bold text-emerald-700">
+            ✓ Already Added — Same
+          </span>
+        `;
+
+      } else if (result.status === "mismatch") {
+
+        rowClass = "bg-red-50/50";
+
+        statusHtml = `
+          <span class="inline-flex items-center rounded-full bg-red-100
+                       px-3 py-1 text-xs font-bold text-red-700">
+            ✕ Amount Mismatch
+          </span>
+        `;
+
+      } else {
+
+        rowClass = "bg-amber-50/50";
+
+        statusHtml = `
+          <span class="inline-flex items-center rounded-full bg-amber-100
+                       px-3 py-1 text-xs font-bold text-amber-700">
+            ! Not Added
+          </span>
+        `;
+
+      }
+
+
+      html += `
+
+        <tr class="${rowClass}">
+
+          <td class="px-4 py-4 font-medium text-slate-500">
+            ${index + 1}
+          </td>
+
+
+          <td class="px-4 py-4">
+
+            <div class="font-semibold text-slate-800">
+              OBM-${escapeHtml(result.order)}
+            </div>
+
+            ${extra}
+
+          </td>
+
+
+          <td class="px-4 py-4 font-semibold text-violet-700">
+            ${formatTk(result.amount)}
+          </td>
+
+
+          <td class="px-4 py-4 font-semibold text-slate-700">
+            ${escapeHtml(sheetAmount)}
+          </td>
+
+
+          <td class="px-4 py-4">
+            ${statusHtml}
+          </td>
+
+        </tr>
+
+      `;
+
+    });
+
+
+    html += `
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    `;
+
+
+    container.innerHTML = html;
+
+  }
+
+
+  function showBulkMessage(message, type = "warning") {
+
+    const summary =
+      document.getElementById("bulkSummary");
+
+    const results =
+      document.getElementById("bulkResults");
+
+
+    summary.classList.remove("hidden");
+
+
+    let classes =
+      "border border-amber-200 bg-amber-50 text-amber-700";
+
+
+    if (type === "error") {
+      classes =
+        "border border-red-200 bg-red-50 text-red-700";
+    }
+
+
+    summary.innerHTML = `
+      <div class="rounded-xl p-4 ${classes}">
+        ${escapeHtml(message)}
+      </div>
+    `;
+
+
+    results.classList.add("hidden");
+
+  }
+
+
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  }
+
+
+  // Close modal by clicking outside the dialog.
+  document
+    .getElementById("bulkModal")
+    .addEventListener("click", function(event) {
+
+      if (event.target === this) {
+        closeBulkSearch();
+      }
+
+    });
+
+
+  document
+    .getElementById("copyPreviewModal")
+    .addEventListener("click", function(event) {
+      if (event.target === this) {
+        closeCopyPreview();
+      }
+    });
+
+
+  // Close new modals by clicking their backdrop.
+  document.getElementById("recordModal").addEventListener("click", function(event) {
+    if (event.target === this) closeRecordModal();
+  });
+
+  // Escape key closes the modal.
+  document.addEventListener("keydown", function(event) {
+    if (event.key !== "Escape") return;
+
+    if (!document.getElementById("recordModal").classList.contains("hidden")) {
+      closeRecordModal();
+      return;
+    }
+    if (!document.getElementById("bulkModal").classList.contains("hidden")) {
+      closeBulkSearch();
+      return;
+    }
+    if (!document.getElementById("copyPreviewModal").classList.contains("hidden")) {
+      closeCopyPreview();
+    }
+  });
+
+
+
+  // ============================================================
+  // GOOGLE SHEET ADD / EDIT
+  // ============================================================
+
+  function resetRecordSaveButton() {
+    const button = document.getElementById("recordSaveButton");
+    if (!button) return;
+    button.disabled = false;
+    button.classList.remove("opacity-60", "cursor-not-allowed");
+  }
+
+  // ============================================================
+  // AUTHENTICATION + ROLE CONTROL
+  // ============================================================
+  let currentUser = JSON.parse(localStorage.getItem("paymentCurrentUser") || "null");
+  let authSessionToken = localStorage.getItem("paymentSessionToken") || "";
+
+  function setAuthStatus(message, error=false) {
+    const el = document.getElementById("authStatus"); el.textContent = message || "";
+    el.className = "mt-4 text-sm " + (error ? "text-red-600" : "text-slate-500");
+  }
+  function showLoginPanel(){ document.getElementById("loginPanel").classList.remove("auth-hidden"); document.getElementById("signupPanel").classList.add("auth-hidden"); document.getElementById("authTitle").textContent="Payment Records Login"; document.getElementById("authSubtitle").textContent="Sign in to continue."; setAuthStatus(""); }
+  function showSignupPanel(){ document.getElementById("loginPanel").classList.add("auth-hidden"); document.getElementById("signupPanel").classList.remove("auth-hidden"); document.getElementById("authTitle").textContent="Create Account"; document.getElementById("authSubtitle").textContent="New accounts are Pending until a checker approves them."; setAuthStatus(""); }
+
+  async function sha256(text) { const data = new TextEncoder().encode(text); const hash = await crypto.subtle.digest("SHA-256", data); return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join(""); }
+  function apiGet(params) {
+    return new Promise((resolve, reject) => {
+      const cb = "obm_cb_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+      const script = document.createElement("script");
+      const query = new URLSearchParams({...params, callback: cb});
+      let finished = false;
+
+      const cleanup = () => {
+        finished = true;
+        try { delete window[cb]; } catch (_) {}
+        script.remove();
+      };
+
+      window[cb] = data => {
+        if (finished) return;
+        cleanup();
+        resolve(data);
+      };
+
+      script.onerror = () => {
+        if (finished) return;
+        cleanup();
+        reject(new Error(
+          "Cannot reach Apps Script. Check that WRITE_WEB_APP_URL is the current /exec URL, " +
+          "the deployment is a Web app, Execute as: Me, Who has access: Anyone, " +
+          "and that you opened the HTML from a normal browser page."
+        ));
+      };
+
+      script.src = writeWebAppUrl + (writeWebAppUrl.includes("?") ? "&" : "?") +
+                   query.toString() + "&_=" + Date.now();
+
+      document.head.appendChild(script);
+
+      setTimeout(() => {
+        if (finished) return;
+        cleanup();
+        reject(new Error(
+          "Apps Script request timed out. The /exec URL is not responding. " +
+          "Redeploy the Apps Script and paste the NEW /exec URL into WRITE_WEB_APP_URL."
+        ));
+      }, 15000);
+    });
+  }
+
+  async function testAppsScriptConnection() {
+    setAuthStatus("Testing Apps Script connection...");
+    try {
+      const r = await apiGet({action:"ping"});
+      if (!r || !r.ok) throw new Error(r && r.error ? r.error : "Ping failed.");
+      setAuthStatus("✓ Apps Script connection is working.");
+    } catch (e) {
+      console.error("Apps Script test failed:", e);
+      setAuthStatus("✕ " + e.message, true);
+    }
+  }
+  async function loginUser(){
+    const email=document.getElementById("loginEmail").value.trim().toLowerCase();
+    const password=document.getElementById("loginPassword").value;
+    if(!email||!password){setAuthStatus("Enter email and password.",true);return;}
+    setAuthStatus("Signing in...");
+    try {
+      const passwordHash=await sha256(password);
+      const r=await apiGet({action:"login",email,passwordHash});
+      if(!r || !r.ok) throw new Error(r && r.error ? r.error : "Login failed.");
+      currentUser=r.user;
+      authSessionToken=r.token;
+      localStorage.setItem("paymentCurrentUser",JSON.stringify(currentUser));
+      localStorage.setItem("paymentSessionToken",authSessionToken);
+      startAppAfterLogin();
+    } catch(e){
+      console.error("Login failed:",e);
+      setAuthStatus(e.message || "Login failed.",true);
+    }
+  }
+  async function signupUser(){
+    const name=document.getElementById("signupName").value.trim();
+    const email=document.getElementById("signupEmail").value.trim().toLowerCase();
+    const password=document.getElementById("signupPassword").value;
+    const role=document.getElementById("signupRole").value;
+    if(!name){setAuthStatus("Enter your full name.",true);return;}
+    if(!/^\S+@\S+\.\S+$/.test(email)){setAuthStatus("Enter a valid email address.",true);return;}
+    if(password.length<6){setAuthStatus("Password must be at least 6 characters.",true);return;}
+    if(["viewer","inputer","checker"].indexOf(role)<0){setAuthStatus("Invalid account role.",true);return;}
+    setAuthStatus("Creating account request...");
+    try {
+      // Backend contract: signup(name,email,passwordHash,role) creates a Pending account.
+      // No Google Session.getEffectiveUser() permission is required.
+      const passwordHash=await sha256(password);
+      const r=await apiGet({action:"signup",name,email,passwordHash,role});
+      if(!r || !r.ok) throw new Error(r && r.error ? r.error : "Signup failed.");
+      document.getElementById("signupName").value="";
+      document.getElementById("signupEmail").value="";
+      document.getElementById("signupPassword").value="";
+      document.getElementById("signupRole").value="inputer";
+      showLoginPanel();
+      setAuthStatus("Account created as Pending. A checker must approve it before you can log in.");
+    } catch(e){
+      console.error("Signup failed:",e);
+      setAuthStatus(e.message || "Signup failed.",true);
+    }
+  }
+  function startAppAfterLogin(){
+    document.getElementById("authModal").classList.add("hidden"); document.getElementById("userBar").classList.remove("hidden");
+    document.getElementById("currentUserName").textContent=currentUser.name; document.getElementById("currentUserRole").textContent=currentUser.role.toUpperCase();
+    const isChecker=currentUser.role==="checker"; document.getElementById("pendingUsersButton").classList.toggle("auth-hidden",!isChecker);
+    document.getElementById("addDataButton").classList.toggle("auth-hidden",!(currentUser.role==="inputer"||currentUser.role==="checker"));
+    document.getElementById("editDataButton").classList.toggle("auth-hidden",currentUser.role!=="checker"); document.getElementById("deleteDataButton").classList.toggle("auth-hidden",currentUser.role!=="checker");
+    loadSheet();
+  }
+  function logoutUser(){localStorage.removeItem("paymentCurrentUser");localStorage.removeItem("paymentSessionToken");currentUser=null;authSessionToken="";location.reload();}
+  function requireRole(role){if(!currentUser||!((Array.isArray(role)?role:[role]).includes(currentUser.role))){alert("You do not have permission for this action.");return false;}return true;}
+
+  async function openPendingUsers(){
+    if(!requireRole("checker"))return; const box=document.getElementById("pendingUsersList"); box.innerHTML='<div class="py-8 text-center text-slate-500">Loading...</div>'; document.getElementById("pendingUsersModal").classList.remove("hidden");
+    try{const r=await apiGet({action:"pendingUsers",token:authSessionToken}); if(!r.ok)throw new Error(r.error||"Unable to load pending accounts."); if(!r.users.length){box.innerHTML='<div class="rounded-xl bg-slate-50 p-6 text-center text-slate-500">No pending accounts.</div>';return;} box.innerHTML=r.users.map(u=>`<div class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4"><div><div class="font-bold text-slate-800">${escapeHtml(u.name)}</div><div class="text-sm text-slate-500">${escapeHtml(u.email)} · ${escapeHtml(u.role)}</div></div><div class="flex gap-2"><button onclick="decideUser('${escapeHtml(u.id)}','approve')" class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Approve</button><button onclick="decideUser('${escapeHtml(u.id)}','reject')" class="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white">Reject</button></div></div>`).join('');}catch(e){box.innerHTML=`<div class="rounded-xl bg-red-50 p-4 text-red-700">${escapeHtml(e.message)}</div>`;}
+  }
+  function closePendingUsers(){document.getElementById("pendingUsersModal").classList.add("hidden");}
+  async function decideUser(id,decision){if(!requireRole("checker"))return;try{const r=await apiGet({action:"decideUser",token:authSessionToken,userId:id,decision});if(!r.ok)throw new Error(r.error||"Action failed.");openPendingUsers();}catch(e){alert(e.message);}}
+
+  // ============================================================
+  // GOOGLE SHEET ADD / EDIT
+  // ============================================================
+  function getFormField(key){ return document.querySelector(`#recordForm [data-field="${key}"]`); }
+  function todayInputValue(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+  function openAddRecordModal(){
+    if(!requireRole(["inputer","checker"]))return; editingRowIndex=null; document.getElementById("recordModalTitle").textContent="Add Data"; document.getElementById("recordModalSubtitle").textContent="Enter values for the new Google Sheet row."; document.getElementById("recordSaveButton").textContent="Add to Sheet"; document.getElementById("recordModalStatus").textContent=""; buildRecordForm([]); resetRecordSaveButton(); document.getElementById("recordModal").classList.remove("hidden");
+  }
+  function openEditSelectedModal(){
+    if(!requireRole("checker"))return; const row=window.selectedTableRowRef||((window.selectedTableRow!=null)?filteredRows[window.selectedTableRow]:null); if(!row){alert("Please click a row first, then choose Edit Selected.");return;} const sourceIndex=allRows.indexOf(row); if(sourceIndex<0){alert("Could not identify the selected Google Sheet row.");return;} editingRowIndex=sourceIndex; document.getElementById("recordModalTitle").textContent="Edit Data"; document.getElementById("recordModalSubtitle").textContent=`Editing row ${sourceIndex+2} in the sheet.`; document.getElementById("recordSaveButton").textContent="Save Changes"; document.getElementById("recordModalStatus").textContent=""; buildRecordForm(row); resetRecordSaveButton(); document.getElementById("recordModal").classList.remove("hidden");
+  }
+  function closeRecordModal(){document.getElementById("recordModal").classList.add("hidden");editingRowIndex=null;resetRecordSaveButton();document.getElementById("recordModalStatus").textContent="";}
+  function resetRecordSaveButton(){const b=document.getElementById("recordSaveButton");if(!b)return;b.disabled=false;b.classList.remove("opacity-60","cursor-not-allowed");}
+
+  function buildRecordForm(values){
+    const form=document.getElementById("recordForm");form.innerHTML="";
+    const defs=[
+      {key:"date",label:"Date",type:"date"},{key:"order",label:"Order Number",type:"text"},{key:"customer",label:"Customer Number",type:"tel",minLength:11},{key:"total",label:"Total Bill",type:"number",min:0,step:"any"},{key:"advance",label:"Advance Payment Amount",type:"number",min:0,step:"any"},{key:"source",label:"Payment Source",type:"select",options:["Bkash","Nagad","Rocket"]},{key:"which",label:"Which Number Payment",type:"text"},{key:"last4",label:"Customer Payment Last 4 Number",type:"number",min:0,max:9999,step:1},{key:"reference",label:"Reference",type:"text"},{key:"management",label:"Management check",type:"select",options:["Unchecked","AGM","GM"]}
+    ];
+    const indexFor=(label)=>headers.findIndex(h=>String(h).trim().toLowerCase()===label.toLowerCase());
+    defs.forEach(def=>{const idx=indexFor(def.label), existing=idx>=0?(values[idx]??""):"";const wrap=document.createElement("label");wrap.className="block";const title=document.createElement("span");title.className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500";title.textContent=def.label;let el;
+      if(def.type==="select"){el=document.createElement("select");def.options.forEach(o=>{const op=document.createElement("option");op.value=o;op.textContent=o;el.appendChild(op);});el.value=existing||def.options[0];}
+      else {el=document.createElement("input");el.type=def.type;el.value=existing||""; if(def.minLength)el.minLength=def.minLength;if(def.min!==undefined)el.min=def.min;if(def.max!==undefined)el.max=def.max;if(def.step)el.step=def.step;}
+      el.dataset.field=def.key;el.dataset.index=idx>=0?idx:"-1";el.className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200";el.placeholder=`Enter ${def.label}`;
+      if(def.key==="date"&&!el.value)el.value=todayInputValue();
+      if(def.key==="order"){el.placeholder="OBM-12345";el.addEventListener("input",()=>{const raw=el.value.trim();if(raw&&!/^OBM-/i.test(raw))el.value="OBM-"+raw.replace(/^OBM-?/i,"");});}
+      if(def.key==="customer")el.addEventListener("input",()=>{el.value=el.value.replace(/\D/g,"");});
+      if(def.key==="last4")el.addEventListener("input",()=>{el.value=el.value.replace(/\D/g,"").slice(0,4);});
+      if(def.key==="advance"||def.key==="total")el.addEventListener("input",validateBillRelation);
+      if(def.key==="reference"&&currentUser&&(!existing||editingRowIndex===null))el.value=currentUser.name;
+      wrap.append(title,el);form.appendChild(wrap);
+    });
+  }
+  function validateBillRelation(){const total=getFormField("total"),advance=getFormField("advance");if(!total||!advance)return;const t=Number(total.value),a=Number(advance.value);advance.setCustomValidity(Number.isFinite(t)&&Number.isFinite(a)&&a>t?"Advance payment cannot be bigger than total bill.":"");}
+  function collectRecordValues(){
+    validateBillRelation(); const total=getFormField("total"),advance=getFormField("advance"),customer=getFormField("customer"),last4=getFormField("last4"); if(!customer.value||customer.value.length<11){alert("Customer Number cannot be less than 11 numbers.");customer.focus();return null;} if(last4.value&&!/^\d{1,4}$/.test(last4.value)){alert("Customer Payment Last 4 Number must be 1 to 4 digits.");last4.focus();return null;} if(Number(advance.value)>Number(total.value)){alert("Advance Payment Amount cannot be bigger than Total Bill.");advance.focus();return null;}
+    const out=new Array(headers.length).fill("");document.querySelectorAll("#recordForm [data-index]").forEach(el=>{const i=Number(el.dataset.index);if(i>=0)out[i]=el.value;}); return out;
+  }
+  async function saveRecord(){
+    if(!requireRole(["inputer","checker"]))return; const values=collectRecordValues();if(!values)return; const button=document.getElementById("recordSaveButton"),status=document.getElementById("recordModalStatus"),rowIndexToUpdate=editingRowIndex,isEdit=rowIndexToUpdate!==null;
+    button.disabled=true;button.classList.add("opacity-60","cursor-not-allowed");status.textContent=isEdit?"Saving changes...":"Adding row...";
+    const payload={action:isEdit?"update":"append",sheetId:SHEET_ID,gid:GID,rowNumber:isEdit?rowIndexToUpdate+2:null,values,requestId:Date.now()+"-"+Math.random().toString(36).slice(2),token:authSessionToken};
+    try{await fetch(writeWebAppUrl+"?t="+encodeURIComponent(payload.requestId),{method:"POST",mode:"no-cors",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload),keepalive:true});status.textContent=isEdit?"Saved. Updating table...":"Added. Updating table...";closeRecordModal();window.selectedTableRow=null;window.selectedTableRowRef=null;await new Promise(r=>setTimeout(r,700));await loadSheet();}
+    catch(error){console.error(error);status.textContent="Could not send the change.";alert("Could not send the change. Check your Apps Script Web App and permissions.");resetRecordSaveButton();}
+  }
+  async function deleteSelectedRecord(){
+    if(!requireRole("checker"))return; const row=window.selectedTableRowRef||((window.selectedTableRow!=null)?filteredRows[window.selectedTableRow]:null); if(!row){alert("Please select a row first.");return;} const sourceIndex=allRows.indexOf(row);if(sourceIndex<0)return; if(!confirm(`Delete sheet row ${sourceIndex+2}? This cannot be undone.`))return;
+    try{await fetch(writeWebAppUrl+"?t="+Date.now(),{method:"POST",mode:"no-cors",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"delete",sheetId:SHEET_ID,gid:GID,rowNumber:sourceIndex+2,token:authSessionToken,requestId:Date.now()+"-"+Math.random().toString(36).slice(2)}),keepalive:true});window.selectedTableRow=null;window.selectedTableRowRef=null;await new Promise(r=>setTimeout(r,700));await loadSheet();}catch(e){alert("Could not delete the row.");}
+  }
+
+  // ============================================================
+  // START
+  // ============================================================
+
+  async function initializeAuthentication(){
+    if(!currentUser || !authSessionToken) return;
+    try {
+      const r=await apiGet({action:"me",token:authSessionToken});
+      if(r.ok){ currentUser=r.user; localStorage.setItem("paymentCurrentUser",JSON.stringify(currentUser)); startAppAfterLogin(); }
+      else { localStorage.removeItem("paymentCurrentUser"); localStorage.removeItem("paymentSessionToken"); currentUser=null; authSessionToken=""; }
+    } catch(e) {
+      // Keep the login screen if the session cannot be verified.
+      console.warn("Session verification failed",e);
+    }
+  }
+  initializeAuthentication();
+
+
+/* ============================================================
+   OBM PAYMENT — PERFORMANCE + PREMIUM HEADER
+   ============================================================ */
+let obmLoaderCount = 0;
+let obmLoaderTimer = null;
+
+function showGlobalLoader(title="Loading data…", text="Please wait while data is being fetched.") {
+  obmLoaderCount++;
+  clearTimeout(obmLoaderTimer);
+  const box = document.getElementById("globalLoader");
+  const bar = document.getElementById("topProgress");
+  if (!box) return;
+  document.getElementById("globalLoaderTitle").textContent = title;
+  document.getElementById("globalLoaderText").textContent = text;
+  box.classList.remove("hidden");
+  box.classList.add("flex");
+  bar?.classList.remove("hidden");
+}
+function hideGlobalLoader(force=false) {
+  obmLoaderCount = force ? 0 : Math.max(0, obmLoaderCount - 1);
+  if (obmLoaderCount) return;
+  obmLoaderTimer = setTimeout(() => {
+    document.getElementById("globalLoader")?.classList.add("hidden");
+    document.getElementById("globalLoader")?.classList.remove("flex");
+    document.getElementById("topProgress")?.classList.add("hidden");
+  }, 180);
+}
+function withLoader(title, text, fn) {
+  showGlobalLoader(title, text);
+  return Promise.resolve().then(fn).finally(() => hideGlobalLoader());
+}
+
+function userInitial(name) {
+  const s = String(name || "U").trim();
+  return s ? s.charAt(0).toUpperCase() : "U";
+}
+function updateHeaderProfile() {
+  if (!currentUser) return;
+  const initial = userInitial(currentUser.name);
+  const role = String(currentUser.role || "user").toUpperCase();
+  ["headerAvatar","profilePopupAvatar"].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = initial;
+  });
+  const vals = {
+    headerProfileName: currentUser.name || "User",
+    headerProfileRole: role,
+    profilePopupName: currentUser.name || "User",
+    profilePopupEmail: currentUser.email || "—",
+    profilePopupRole: role
+  };
+  Object.entries(vals).forEach(([id,v]) => { const el=document.getElementById(id); if(el) el.textContent=v; });
+  updateProfileStats();
+}
+function toggleProfilePopup() {
+  const p = document.getElementById("profilePopup");
+  if (!p) return;
+  p.classList.toggle("hidden");
+  if (!p.classList.contains("hidden")) updateProfileStats();
+}
+document.addEventListener("click", e => {
+  const area = document.getElementById("headerProfileArea");
+  const p = document.getElementById("profilePopup");
+  if (area && p && !area.contains(e.target)) p.classList.add("hidden");
+});
+
+function updateProfileStats() {
+  if (!currentUser) return;
+  const refIndex = getHeaderIndex("Reference");
+  const checkIndex = getHeaderIndex("Management check");
+  const mine = refIndex >= 0
+    ? allRows.filter(r => String(r[refIndex] ?? "").trim().toLowerCase() === String(currentUser.name || "").trim().toLowerCase())
+    : [];
+  const approved = checkIndex >= 0
+    ? mine.filter(r => normalizeManagement(r[checkIndex]) !== "Unchecked").length : 0;
+  const unchecked = mine.length - approved;
+  const total = allRows.length;
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=String(v); };
+  set("profileEntries", mine.length);
+  set("profileApproved", approved);
+  set("profileUnchecked", unchecked);
+  set("profileTotal", total);
+
+  const checkerBox = document.getElementById("profileCheckerStats");
+  if (checkerBox) checkerBox.classList.toggle("hidden", currentUser.role !== "checker");
+
+  if (currentUser.role === "checker") {
+    set("profileCheckedRecords", checkIndex >= 0 ? allRows.filter(r => normalizeManagement(r[checkIndex]) !== "Unchecked").length : 0);
+    // pending count is loaded separately when checker opens Pending Users.
+    const pendingEl = document.getElementById("profilePendingUsers");
+    if (pendingEl && pendingEl.textContent === "0") pendingEl.textContent = "—";
+  }
+}
+
+/* Inputer rule: Management check is visible but locked to Unchecked.
+   Checker can select AGM/GM/Unchecked. */
+function applyManagementRoleLock() {
+  const field = getFormField("management");
+  if (!field) return;
+  if (currentUser?.role === "inputer") {
+    field.value = "Unchecked";
+    field.disabled = true;
+    field.title = "Only a checker can change Management check.";
+    field.classList.add("cursor-not-allowed","bg-slate-100","text-slate-500");
+  } else {
+    field.disabled = false;
+    field.title = "";
+    field.classList.remove("cursor-not-allowed","bg-slate-100","text-slate-500");
+  }
+}
+
+/* Make add/edit form role-aware after it is built. */
+const _obmOriginalBuildRecordForm = window.buildRecordForm;
+window.buildRecordForm = function(values) {
+  _obmOriginalBuildRecordForm(values);
+  applyManagementRoleLock();
+};
+
+/* Keep the existing app's user bar synchronized, even though the new
+   header is the primary profile control. */
+function syncLegacyUserBar() {
+  const bar = document.getElementById("userBar");
+  if (bar) bar.classList.add("hidden");
+}
+
+/* Wrap loadSheet with a clear loading state without changing its internals. */
+const _obmOriginalLoadSheet = window.loadSheet;
+window.loadSheet = async function(...args) {
+  showGlobalLoader("Fetching Google Sheet data…", "Google Sheets can take a few seconds to respond. Please keep this page open.");
+  try {
+    return await _obmOriginalLoadSheet.apply(this,args);
+  } finally {
+    updateHeaderProfile();
+    hideGlobalLoader();
+  }
+};
+
+/* Wrap auth API calls with a timeout message that is easier to understand. */
+const _obmOriginalApiGet = window.apiGet;
+window.apiGet = function(params) {
+  const action = String(params?.action || "");
+  const promise = _obmOriginalApiGet.call(this, params);
+  if (["login","signup","me","pendingUsers","decideUser","ping"].includes(action)) {
+    showGlobalLoader(
+      action === "ping" ? "Checking server…" : action === "login" ? "Signing in…" : action === "signup" ? "Creating account…" : "Connecting…",
+      "Waiting for the Apps Script server to respond."
+    );
+    return promise.finally(() => hideGlobalLoader());
+  }
+  return promise;
+};
+
+/* When login starts, the header gets populated immediately. */
+const _obmOriginalStartAppAfterLogin = window.startAppAfterLogin;
+window.startAppAfterLogin = function(...args) {
+  const r = _obmOriginalStartAppAfterLogin.apply(this,args);
+  updateHeaderProfile();
+  syncLegacyUserBar();
+  return r;
+};
+
+/* Update profile counters after a successful sheet refresh. */
+const _obmOriginalUpdateMyStats = window.updateMyStats;
+if (typeof _obmOriginalUpdateMyStats === "function") {
+  window.updateMyStats = function(...args) {
+    const r = _obmOriginalUpdateMyStats.apply(this,args);
+    updateProfileStats();
+    return r;
+  };
+}
+
+/* Also make the save action show a full-page loading state. */
+const _obmOriginalSaveRecord = window.saveRecord;
+window.saveRecord = async function(...args) {
+  showGlobalLoader("Saving payment record…", "Sending the change to Apps Script and refreshing the table.");
+  try { return await _obmOriginalSaveRecord.apply(this,args); }
+  finally { hideGlobalLoader(); updateProfileStats(); }
+};
+const _obmOriginalDeleteSelectedRecord = window.deleteSelectedRecord;
+window.deleteSelectedRecord = async function(...args) {
+  showGlobalLoader("Deleting record…", "Updating Google Sheet and refreshing the table.");
+  try { return await _obmOriginalDeleteSelectedRecord.apply(this,args); }
+  finally { hideGlobalLoader(); updateProfileStats(); }
+};
+
+/* Improve the existing loading screen text if it exists. */
+const loadingEl = document.getElementById("loading");
+if (loadingEl) {
+  loadingEl.innerHTML = `
+    <div class="flex flex-col items-center justify-center gap-3 p-10 text-center">
+      <div class="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
+      <div class="font-bold text-slate-700">Fetching payment records…</div>
+      <div class="max-w-md text-xs text-slate-500">Google Sheets may take a moment to respond. Your data is loading safely.</div>
+    </div>`;
+}
+
+</script>
+
+</body>
+</html>
+<!-- profile/header enhancements are injected above -->
